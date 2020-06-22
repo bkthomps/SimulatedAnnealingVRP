@@ -14,7 +14,35 @@ public class VRP {
     private static final int TRUCK_COUNT = 6;
     private static final int DEPOT_NODE = 1;
 
-    private static class Customer {
+    private static final class BestCost {
+        private final double cost;
+        private final List<ArrayList<Customer>> truckRoutes;
+
+        BestCost(double cost, List<ArrayList<Customer>> truckRoutes) {
+            this.cost = cost;
+            this.truckRoutes = truckRoutes;
+        }
+
+        @Override
+        public String toString() {
+            var firstLine = "best Cost = " + cost + ", with these truck routes:\n";
+            var sb = new StringBuilder();
+            sb.append(firstLine);
+            for (int i = 1; i <= truckRoutes.size(); i++) {
+                sb.append("Truck ");
+                sb.append(i);
+                sb.append(':');
+                for (var c : truckRoutes.get(i - 1)) {
+                    sb.append(' ');
+                    sb.append(c.index);
+                }
+                sb.append('\n');
+            }
+            return sb.toString();
+        }
+    }
+
+    private static final class Customer {
         private final int index;
         private final int x;
         private final int y;
@@ -59,10 +87,22 @@ public class VRP {
     private void runLogic() {
         var customers = getCustomers();
         var truckRoutes = initialize(customers);
-        var costNoService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, false);
-        System.out.println("Optimal cost (without service cost) is: " + costNoService);
-        var costWithService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, true);
-        System.out.println("Optimal cost (with service cost) is: " + costWithService);
+        var costNoService = new BestCost(Integer.MAX_VALUE, null);
+        for (int i = 0; i < 5; i++) {
+            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, false, true);
+            if (temp.cost < costNoService.cost) {
+                costNoService = temp;
+            }
+        }
+        System.out.println("Without service cost, " + costNoService);
+        var costWithService = new BestCost(Integer.MAX_VALUE, null);
+        for (int i = 0; i < 5; i++) {
+            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, true, true);
+            if (temp.cost < costWithService.cost) {
+                costWithService = temp;
+            }
+        }
+        System.out.println("With service cost, " + costWithService);
     }
 
     private Map<Integer, Customer> getCustomers() {
@@ -132,26 +172,26 @@ public class VRP {
         return truckRoute;
     }
 
-    private double bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoutes,
-                                  boolean isService) {
-        double initTemp = 100;
+    private BestCost bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoutes,
+                                    boolean isService, boolean useRoundedDistance) {
+        double initTemp = 500;
         double endTemp = 0;
-        double alpha = 1;
-        double cost = calculateCost(depot, truckRoutes, isService);
+        double alpha = 0.0001;
+        double cost = calculateCost(depot, truckRoutes, isService, useRoundedDistance);
         for (double temperature = initTemp; temperature > endTemp; temperature -= alpha) {
             var solutionCandidate = modifyRoute(truckRoutes);
-            double newCost = calculateCost(depot, solutionCandidate, isService);
+            double newCost = calculateCost(depot, solutionCandidate, isService, useRoundedDistance);
             double costChange = newCost - cost;
             if (costChange < 0 || Math.random() < Math.exp(-costChange / temperature)) {
                 truckRoutes = solutionCandidate;
                 cost = newCost;
             }
         }
-        return cost;
+        return new BestCost(cost, truckRoutes);
     }
 
     private double calculateCost(Customer depot, List<ArrayList<Customer>> truckRoutes,
-                                 boolean isService) {
+                                 boolean isService, boolean useRoundedDistance) {
         double cost = 0;
         for (var tr : truckRoutes) {
             Customer first;
@@ -161,16 +201,17 @@ public class VRP {
                 first = second;
                 second = c;
                 cost += isService ? second.service : 0;
-                cost += distance(first, second);
+                cost += distance(first, second, useRoundedDistance);
             }
             cost += isService ? depot.service : 0;
-            cost += distance(second, depot);
+            cost += distance(second, depot, useRoundedDistance);
         }
         return cost;
     }
 
-    private double distance(Customer first, Customer second) {
-        return Math.sqrt(Math.pow(first.x - second.x, 2) + Math.pow(first.y - second.y, 2));
+    private double distance(Customer first, Customer second, boolean useRoundedDistance) {
+        double dist = Math.sqrt(Math.pow(first.x - second.x, 2) + Math.pow(first.y - second.y, 2));
+        return useRoundedDistance ? Math.round(dist) : dist;
     }
 
     private List<ArrayList<Customer>> modifyRoute(List<ArrayList<Customer>> truckRoutes) {
