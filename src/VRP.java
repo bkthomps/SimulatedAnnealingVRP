@@ -59,6 +59,10 @@ public class VRP {
     private void runLogic() {
         var customers = getCustomers();
         var truckRoute = initialize(customers);
+        var costNoService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoute, false);
+        System.out.println("Optimal cost (without service cost) is: " + costNoService);
+        var costWithService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoute, true);
+        System.out.println("Optimal cost (with service cost) is: " + costWithService);
     }
 
     private Map<Integer, Customer> getCustomers() {
@@ -126,5 +130,35 @@ public class VRP {
             truckRoute.add(list);
         }
         return truckRoute;
+    }
+
+    private double bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoute,
+                                  boolean isService) {
+        var cost = calculateCost(depot, truckRoute, isService);
+        // TODO: add SA
+        return cost;
+    }
+
+    private double calculateCost(Customer depot, List<ArrayList<Customer>> truckRoute,
+                                 boolean isService) {
+        double cost = 0;
+        for (var tr : truckRoute) {
+            Customer first;
+            Customer second = depot;
+            cost += isService ? depot.service : 0;
+            for (var c : tr) {
+                first = second;
+                second = c;
+                cost += isService ? second.service : 0;
+                cost += distance(first, second);
+            }
+            cost += isService ? depot.service : 0;
+            cost += distance(second, depot);
+        }
+        return cost;
+    }
+
+    private double distance(Customer first, Customer second) {
+        return Math.sqrt(Math.pow(first.x - second.x, 2) + Math.pow(first.y - second.y, 2));
     }
 }
