@@ -134,8 +134,19 @@ public class VRP {
 
     private double bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoutes,
                                   boolean isService) {
-        var cost = calculateCost(depot, truckRoutes, isService);
-        // TODO: add SA
+        double initTemp = 100;
+        double endTemp = 0;
+        double alpha = 1;
+        double cost = calculateCost(depot, truckRoutes, isService);
+        for (double temperature = initTemp; temperature > endTemp; temperature -= alpha) {
+            var solutionCandidate = modifyRoute(truckRoutes);
+            double newCost = calculateCost(depot, solutionCandidate, isService);
+            double costChange = newCost - cost;
+            if (costChange < 0 || Math.random() < Math.exp(-costChange / temperature)) {
+                truckRoutes = solutionCandidate;
+                cost = newCost;
+            }
+        }
         return cost;
     }
 
