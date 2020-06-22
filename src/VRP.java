@@ -58,10 +58,10 @@ public class VRP {
 
     private void runLogic() {
         var customers = getCustomers();
-        var truckRoute = initialize(customers);
-        var costNoService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoute, false);
+        var truckRoutes = initialize(customers);
+        var costNoService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, false);
         System.out.println("Optimal cost (without service cost) is: " + costNoService);
-        var costWithService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoute, true);
+        var costWithService = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, true);
         System.out.println("Optimal cost (with service cost) is: " + costWithService);
     }
 
@@ -132,17 +132,17 @@ public class VRP {
         return truckRoute;
     }
 
-    private double bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoute,
+    private double bestCostFromSA(Customer depot, List<ArrayList<Customer>> truckRoutes,
                                   boolean isService) {
-        var cost = calculateCost(depot, truckRoute, isService);
+        var cost = calculateCost(depot, truckRoutes, isService);
         // TODO: add SA
         return cost;
     }
 
-    private double calculateCost(Customer depot, List<ArrayList<Customer>> truckRoute,
+    private double calculateCost(Customer depot, List<ArrayList<Customer>> truckRoutes,
                                  boolean isService) {
         double cost = 0;
-        for (var tr : truckRoute) {
+        for (var tr : truckRoutes) {
             Customer first;
             Customer second = depot;
             cost += isService ? depot.service : 0;
@@ -160,5 +160,31 @@ public class VRP {
 
     private double distance(Customer first, Customer second) {
         return Math.sqrt(Math.pow(first.x - second.x, 2) + Math.pow(first.y - second.y, 2));
+    }
+
+    private List<ArrayList<Customer>> modifyRoute(List<ArrayList<Customer>> truckRoutes) {
+        var modifiedRoutes = new ArrayList<ArrayList<Customer>>();
+        for (var tr : truckRoutes) {
+            var route = new ArrayList<>(tr);
+            modifiedRoutes.add(route);
+        }
+        while (true) {
+            int removeTruckIndex = (int) (modifiedRoutes.size() * Math.random());
+            var removeSpecificRoute = modifiedRoutes.get(removeTruckIndex);
+            if (removeSpecificRoute.isEmpty()) {
+                throw new IllegalStateException("Route can never be empty");
+            }
+            if (removeSpecificRoute.size() == 1) {
+                continue;
+            }
+            int removeCustomerIndex = (int) (removeSpecificRoute.size() * Math.random());
+            var customer = removeSpecificRoute.remove(removeCustomerIndex);
+            int addTruckIndex = (int) (modifiedRoutes.size() * Math.random());
+            var addSpecificRoute = modifiedRoutes.get(addTruckIndex);
+            int addCustomerIndex = (int) ((addSpecificRoute.size() + 1) * Math.random());
+            addSpecificRoute.add(addCustomerIndex, customer);
+            break;
+        }
+        return modifiedRoutes;
     }
 }
