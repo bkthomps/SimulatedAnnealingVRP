@@ -3,10 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class VRP {
 
@@ -85,24 +82,23 @@ public class VRP {
     }
 
     private void runLogic() {
+        runCase(false, false);
+        runCase(false, true);
+        runCase(true, false);
+        runCase(true, true);
+    }
+
+    private void runCase(boolean withService, boolean withRounding) {
         var customers = getCustomers();
         var truckRoutes = initialize(customers);
-        var costNoService = new BestCost(Integer.MAX_VALUE, null);
+        var cost = new BestCost(Integer.MAX_VALUE, null);
         for (int i = 0; i < 5; i++) {
-            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, false, true);
-            if (temp.cost < costNoService.cost) {
-                costNoService = temp;
+            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, withService, withRounding);
+            if (temp.cost < cost.cost) {
+                cost = temp;
             }
         }
-        System.out.println("Without service cost, " + costNoService);
-        var costWithService = new BestCost(Integer.MAX_VALUE, null);
-        for (int i = 0; i < 5; i++) {
-            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, true, true);
-            if (temp.cost < costWithService.cost) {
-                costWithService = temp;
-            }
-        }
-        System.out.println("With service cost, " + costWithService);
+        System.out.format(Locale.US, "With service = %b, with rounding = %b; %s\n", withService, withRounding, cost);
     }
 
     private Map<Integer, Customer> getCustomers() {
