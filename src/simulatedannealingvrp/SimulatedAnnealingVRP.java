@@ -68,9 +68,10 @@ public class SimulatedAnnealingVRP {
         var truckRoutes = initialize(customers);
         var cost = new BestCost(Integer.MAX_VALUE, null);
         for (int i = 0; i < averages; i++) {
-            var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, withService, withRounding);
-            if (temp.getCost() < cost.getCost()) {
-                cost = temp;
+            var depot = customers.get(DEPOT_NODE);
+            var curCost = bestCostFromSA(depot, truckRoutes, withService, withRounding);
+            if (curCost.getCost() < cost.getCost()) {
+                cost = curCost;
             }
         }
         var message = "With service = %b, with rounding = %b; %s\n";
@@ -91,34 +92,37 @@ public class SimulatedAnnealingVRP {
                     continue;
                 }
                 switch (state) {
-                    case 1:
+                    case 1 -> {
                         var coordinates = cleanLine.split(" ");
                         if (coordinates.length != 3) {
-                            throw new IllegalStateException("Must have three coordinate parameters");
+                            var error = "The VRP file must have three coordinate parameters";
+                            throw new IllegalStateException(error);
                         }
                         int index = Integer.parseInt(coordinates[0]);
                         int x = Integer.parseInt(coordinates[1]);
                         int y = Integer.parseInt(coordinates[2]);
                         var customer = new Customer(index, x, y);
                         customers.put(index, customer);
-                        break;
-                    case 2:
+                    }
+                    case 2 -> {
                         var service = cleanLine.split(" ");
                         if (service.length != 2) {
-                            throw new IllegalStateException("Must have two service parameters");
+                            var error = "The VRP file must have two service parameters";
+                            throw new IllegalStateException(error);
                         }
                         int serviceIndex = Integer.parseInt(service[0]);
                         int serviceCost = Integer.parseInt(service[1]);
                         var existingCustomer = customers.get(serviceIndex);
                         existingCustomer.setService(serviceCost);
                         customers.put(serviceIndex, existingCustomer);
-                        break;
-                    case 3:
+                    }
+                    case 3 -> {
                         int depot = Integer.parseInt(cleanLine);
                         if (depot != DEPOT_NODE && depot != -1) {
-                            throw new IllegalStateException("Depot configured only to be " + DEPOT_NODE);
+                            var error = "Depot configured only to be " + DEPOT_NODE;
+                            throw new IllegalStateException(error);
                         }
-                        break;
+                    }
                 }
             }
         } catch (IOException e) {
