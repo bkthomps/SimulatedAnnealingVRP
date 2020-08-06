@@ -12,71 +12,6 @@ public class SimulatedAnnealingVRP {
     private static final int TRUCK_COUNT = 6;
     private static final int DEPOT_NODE = 1;
 
-    private static final class BestCost {
-        private final double cost;
-        private final List<ArrayList<Customer>> truckRoutes;
-
-        BestCost(double cost, List<ArrayList<Customer>> truckRoutes) {
-            this.cost = cost;
-            this.truckRoutes = truckRoutes;
-        }
-
-        @Override
-        public String toString() {
-            var firstLine = "best Cost = " + cost + ", with these truck routes:\n";
-            var sb = new StringBuilder();
-            sb.append(firstLine);
-            for (int i = 1; i <= truckRoutes.size(); i++) {
-                sb.append("Truck ");
-                sb.append(i);
-                sb.append(':');
-                for (var c : truckRoutes.get(i - 1)) {
-                    sb.append(' ');
-                    sb.append(c.index);
-                }
-                sb.append('\n');
-            }
-            return sb.toString();
-        }
-    }
-
-    private static final class Customer {
-        private final int index;
-        private final int x;
-        private final int y;
-        private int service;
-
-        Customer(int index, int x, int y) {
-            this.index = index;
-            this.x = x;
-            this.y = y;
-            this.service = -1;
-        }
-
-        private void setService(int service) {
-            if (this.service != -1) {
-                throw new IllegalStateException("Can only add service once");
-            }
-            this.service = service;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (service == -1) {
-                throw new IllegalStateException("Must set service");
-            }
-            return (o instanceof Customer) && index == ((Customer) o).index;
-        }
-
-        @Override
-        public int hashCode() {
-            if (service == -1) {
-                throw new IllegalStateException("Must set service");
-            }
-            return Integer.hashCode(index);
-        }
-    }
-
     public static void main(String[] args) {
         var vrp = new SimulatedAnnealingVRP();
         vrp.runLogic();
@@ -95,7 +30,7 @@ public class SimulatedAnnealingVRP {
         var cost = new BestCost(Integer.MAX_VALUE, null);
         for (int i = 0; i < 5; i++) {
             var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, withService, withRounding);
-            if (temp.cost < cost.cost) {
+            if (temp.getCost() < cost.getCost()) {
                 cost = temp;
             }
         }
@@ -193,21 +128,21 @@ public class SimulatedAnnealingVRP {
         for (var tr : truckRoutes) {
             Customer first;
             Customer second = depot;
-            cost += isService ? depot.service : 0;
+            cost += isService ? depot.getService() : 0;
             for (var c : tr) {
                 first = second;
                 second = c;
-                cost += isService ? second.service : 0;
+                cost += isService ? second.getService() : 0;
                 cost += distance(first, second, useRoundedDistance);
             }
-            cost += isService ? depot.service : 0;
+            cost += isService ? depot.getService() : 0;
             cost += distance(second, depot, useRoundedDistance);
         }
         return cost;
     }
 
     private double distance(Customer first, Customer second, boolean useRoundedDistance) {
-        double dist = Math.sqrt(Math.pow(first.x - second.x, 2) + Math.pow(first.y - second.y, 2));
+        double dist = Math.sqrt(Math.pow(first.getX() - second.getX(), 2) + Math.pow(first.getY() - second.getY(), 2));
         return useRoundedDistance ? Math.round(dist) : dist;
     }
 

@@ -1,4 +1,7 @@
-DEFAULT_GOAL := run
+.DEFAULT_GOAL := run
 
 run:
-	java src/simulatedannealingvrp/SimulatedAnnealingVRP.java
+	java -jar SimulatedAnnealingVRP.jar
+
+compile:
+	cd src; make; cd ..; mv src/*.jar .	
