@@ -1,3 +1,5 @@
+package simulatedannealingvrp;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -5,8 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class VRP {
-
+public class SimulatedAnnealingVRP {
     private static final String FILE = "A-n39-k6.vrp";
     private static final int TRUCK_COUNT = 6;
     private static final int DEPOT_NODE = 1;
@@ -77,7 +78,7 @@ public class VRP {
     }
 
     public static void main(String[] args) {
-        var vrp = new VRP();
+        var vrp = new SimulatedAnnealingVRP();
         vrp.runLogic();
     }
 
