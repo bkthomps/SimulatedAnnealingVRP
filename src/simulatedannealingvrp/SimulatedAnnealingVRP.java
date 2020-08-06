@@ -8,13 +8,52 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class SimulatedAnnealingVRP {
-    private static final String FILE = "A-n39-k6.vrp";
-    private static final int TRUCK_COUNT = 6;
     private static final int DEPOT_NODE = 1;
+    private final String fileName;
+    private final int truckCount;
+    private final int averages;
 
     public static void main(String[] args) {
-        var vrp = new SimulatedAnnealingVRP();
+        if (args.length != 2 && args.length != 3) {
+            System.err.println("Format: make file=A-n39-k6.vrp vehicles=6 averages=5");
+            return;
+        }
+        var file = args[0];
+        var handle = Paths.get(file);
+        if (!Files.isRegularFile(handle) || !Files.isReadable(handle)) {
+            System.err.println("Error: could not read file " + file);
+            return;
+        }
+        int truckCount;
+        try {
+            truckCount = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            truckCount = -1;
+        }
+        if (truckCount <= 0 || truckCount > 1_000_000) {
+            var error = "Error: vehicles must be a positive integer not greater than one million";
+            System.err.println(error);
+            return;
+        }
+        int averages;
+        try {
+            averages = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+        } catch (NumberFormatException e) {
+            averages = -1;
+        }
+        if (averages <= 0 || averages > 1_000_000) {
+            var error = "Error: averages must be a positive integer not greater than one million";
+            System.err.println(error);
+            return;
+        }
+        var vrp = new SimulatedAnnealingVRP(file, truckCount, averages);
         vrp.runLogic();
+    }
+
+    private SimulatedAnnealingVRP(String fileName, int truckCount, int averages) {
+        this.fileName = fileName;
+        this.truckCount = truckCount;
+        this.averages = averages;
     }
 
     private void runLogic() {
@@ -28,18 +67,19 @@ public class SimulatedAnnealingVRP {
         var customers = getCustomers();
         var truckRoutes = initialize(customers);
         var cost = new BestCost(Integer.MAX_VALUE, null);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < averages; i++) {
             var temp = bestCostFromSA(customers.get(DEPOT_NODE), truckRoutes, withService, withRounding);
             if (temp.getCost() < cost.getCost()) {
                 cost = temp;
             }
         }
-        System.out.format(Locale.US, "With service = %b, with rounding = %b; %s\n", withService, withRounding, cost);
+        var message = "With service = %b, with rounding = %b; %s\n";
+        System.out.format(Locale.US, message, withService, withRounding, cost);
     }
 
     private Map<Integer, Customer> getCustomers() {
         var customers = new HashMap<Integer, Customer>();
-        try (var in = Files.newInputStream(Paths.get(FILE));
+        try (var in = Files.newInputStream(Paths.get(fileName));
              var reader = new BufferedReader(new InputStreamReader(in))) {
             int state = 0;
             String line;
@@ -75,14 +115,14 @@ public class SimulatedAnnealingVRP {
                         break;
                     case 3:
                         int depot = Integer.parseInt(cleanLine);
-                        if (depot != 1 && depot != -1) {
-                            throw new IllegalStateException("Depot configured only to be 1");
+                        if (depot != DEPOT_NODE && depot != -1) {
+                            throw new IllegalStateException("Depot configured only to be " + DEPOT_NODE);
                         }
                         break;
                 }
             }
         } catch (IOException e) {
-            throw new IllegalStateException("Could not open file");
+            throw new IllegalStateException("Could not open file: " + fileName);
         }
         return customers;
     }
@@ -91,9 +131,9 @@ public class SimulatedAnnealingVRP {
         var truckRoute = new ArrayList<ArrayList<Customer>>();
         int initRemaining = customers.size() - 1;
         int initIndex = 2;
-        for (int i = 0; i < TRUCK_COUNT; i++) {
+        for (int i = 0; i < truckCount; i++) {
             var list = new ArrayList<Customer>();
-            int currentInit = (int) Math.round((double) initRemaining / (TRUCK_COUNT - i));
+            int currentInit = (int) Math.round((double) initRemaining / (truckCount - i));
             initRemaining -= currentInit;
             for (int j = 0; j < currentInit; j++) {
                 list.add(customers.get(initIndex));
@@ -142,7 +182,9 @@ public class SimulatedAnnealingVRP {
     }
 
     private double distance(Customer first, Customer second, boolean useRoundedDistance) {
-        double dist = Math.sqrt(Math.pow(first.getX() - second.getX(), 2) + Math.pow(first.getY() - second.getY(), 2));
+        var xDiff = first.getX() - second.getX();
+        var yDiff = first.getY() - second.getY();
+        double dist = Math.sqrt(Math.pow(xDiff, 2) + Math.pow(yDiff, 2));
         return useRoundedDistance ? Math.round(dist) : dist;
     }
 
